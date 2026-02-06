@@ -21,5 +21,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".MemeActivity" />
+        <activity 
+        android:name=".ProfileActivity" 
+        android:exported="false" />
+
     </application>
 </manifest>

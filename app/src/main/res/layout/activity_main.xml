@@ -6,7 +6,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#121212"
-    tools:context=".MemeActivity"> <!-- Changed tools context to MemeActivity -->
+    android:paddingTop="48dp" 
+    tools:context=".MemeActivity"> 
 
     <TextView
         android:id="@+id/toptext"
@@ -24,6 +25,7 @@
         android:textStyle="bold"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Rest of your code remains the same... -->
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="0dp"
@@ -78,7 +80,6 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- Container for side-by-side buttons -->
     <LinearLayout
         android:id="@+id/buttonContainer"
         android:layout_width="wrap_content"
