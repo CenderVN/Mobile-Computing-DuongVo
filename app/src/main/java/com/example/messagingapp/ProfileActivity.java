@@ -39,8 +39,9 @@ public class ProfileActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+        AppDatabase db = AppDatabase.getDb(this);
+        User user = db.UserDao().getUser();
         ImageView backBtn = findViewById(R.id.btnBack);
-        User user = AppDatabase.getDb(this).UserDao().getUser();
         if (user == null){
             user = new User(ProfileActivity.this);
         }
@@ -53,23 +54,23 @@ public class ProfileActivity extends AppCompatActivity {
             }
         });
         EditText username = findViewById(R.id.editCreatorName);
+        username.setHint(user.getUsername());
         Button savebutton = findViewById(R.id.btnSaveProfile);
         savebutton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 AppDatabase db = AppDatabase.getDb(ProfileActivity.this);
+                User user = db.UserDao().getUser();
                 String addusername = username.getText().toString();
                 String addpic = selectedImagePath;
                 if (addusername.isEmpty()){
-                    Toast.makeText(ProfileActivity.this,"Please add an username.", Toast.LENGTH_SHORT).show();
-                    return;
+                    addusername = user.getUsername();
                 };
                 if (addpic.isEmpty()){
-                    Toast.makeText(ProfileActivity.this,"Please add a profile picture.", Toast.LENGTH_SHORT).show();
-                    return;
+                    addpic = user.getProfilepic();
                 };
-                User user = new User(addusername,addpic);
-                db.UserDao().save(user);
+                User newuser = new User(addusername,addpic);
+                db.UserDao().save(newuser);
                 Toast.makeText(ProfileActivity.this, "Profile Saved!", Toast.LENGTH_SHORT).show();
                 finish();
             }
@@ -100,7 +101,7 @@ public class ProfileActivity extends AppCompatActivity {
             profilePreview.setImageURI(Uri.fromFile(file));
 
         } catch (Exception e) {
-            throw new RuntimeException("Intentional Crash: " + e.getMessage(), e);
+            Toast.makeText(this, "Error saving image", Toast.LENGTH_SHORT).show();
         }
     }
 }

@@ -21,19 +21,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateProfileUI() {
-        Toast.makeText(MainActivity.this, "got here", Toast.LENGTH_SHORT).show();
         AppDatabase db = AppDatabase.getDb(this);
         User user = db.UserDao().getUser();
-        if (user != null) {
-            TextView title = findViewById(R.id.txtFeedTitle);
-            ImageView profileIcon = findViewById(R.id.btnProfile);
-            if (user.getUsername() != null && !user.getUsername().isEmpty()) {
-                title.setText("Meme Feed - " + user.getUsername());
-            }
-            if (user.getProfilepic() != null && !user.getProfilepic().isEmpty()) {
-                profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
-            }
+        if (user == null) {
+            user = new User(MainActivity.this); 
         }
+        TextView title = findViewById(R.id.txtFeedTitle);
+        ImageView profileIcon = findViewById(R.id.btnProfile);
+        title.setText("Meme Feed - " + user.getUsername());
+        profileIcon.setImageURI(null); 
+        profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
+        
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
