@@ -71,7 +71,7 @@ public class MemeActivity extends AppCompatActivity {
         ImageView memeimage = findViewById(R.id.imageView);
         memeimage.setImageDrawable(meme.getImage(this));
         myScroller = findViewById(R.id.myScroller);
-        Button backBtn = findViewById(R.id.buttonBack);
+        ImageView backBtn = findViewById(R.id.btnBack2);
         backBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

@@ -1,16 +1,40 @@
 package com.example.messagingapp;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateProfileUI();
+    }
 
+    private void updateProfileUI() {
+        Toast.makeText(MainActivity.this, "got here", Toast.LENGTH_SHORT).show();
+        AppDatabase db = AppDatabase.getDb(this);
+        User user = db.UserDao().getUser();
+        if (user != null) {
+            TextView title = findViewById(R.id.txtFeedTitle);
+            ImageView profileIcon = findViewById(R.id.btnProfile);
+            if (user.getUsername() != null && !user.getUsername().isEmpty()) {
+                title.setText("Meme Feed - " + user.getUsername());
+            }
+            if (user.getProfilepic() != null && !user.getProfilepic().isEmpty()) {
+                profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
+            }
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
