@@ -8,6 +8,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import com.bumptech.glide.Glide;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -56,8 +57,13 @@ public class MemeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        String rawJson = getIntent().getStringExtra("RAW_JSON");
         String jsonFile = getIntent().getStringExtra("JSON_FILE");
-        meme = new Meme(jsonFile, this);
+        if (rawJson != null) {
+            meme = new Meme(rawJson, this); 
+        } else if (jsonFile != null) {
+            meme = new Meme(jsonFile, this);
+        }
         lyrics = meme.getSubtitles();
         setContentView(R.layout.activity_main);
         Button myButton = findViewById(R.id.button2);
@@ -69,7 +75,10 @@ public class MemeActivity extends AppCompatActivity {
         TextView bottomtext = findViewById(R.id.bottomtext);
         bottomtext.setText(meme.getBottomtext());
         ImageView memeimage = findViewById(R.id.imageView);
-        memeimage.setImageDrawable(meme.getImage(this));
+        Glide.with(this)
+             .load(meme.getImage())
+             .placeholder(R.drawable.profile_placeholder) // Show this while downloading
+             .into(memeimage);
         myScroller = findViewById(R.id.myScroller);
         ImageView backBtn = findViewById(R.id.btnBack2);
         backBtn.setOnClickListener(new View.OnClickListener() {

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 
 import org.json.JSONArray;
+
 import org.json.JSONObject;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -17,21 +18,28 @@ public class Meme {
     private List<String> subtitles = new ArrayList<>();
     private String audioname = "";
 
-    public Meme(String jsonFilePath, Context context) {
-        String jsonString = filereader(jsonFilePath, context);
+    public Meme(String input, Context context) {
+        String jsonString;
+    
+        if (input != null && input.trim().startsWith("{")) {
+            jsonString = input;
+        } else {
+            jsonString = filereader(input, context);
+        }
+
         try {
             JSONObject jsonObject = new JSONObject(jsonString);
             this.toptext = jsonObject.optString("toptext", "");
             this.bottomtext = jsonObject.optString("bottomtext", "");
             this.imagedirectory = jsonObject.optString("imagedirectory", "");
             this.audioname = jsonObject.optString("audioname", "");
+        
             JSONArray jsonArray = jsonObject.optJSONArray("subtitles");
             if (jsonArray != null) {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     this.subtitles.add(jsonArray.getString(i));
                 }
             }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -54,15 +62,7 @@ public class Meme {
     public String getImagedirectory() { return imagedirectory; }
     public List<String> getSubtitles() { return subtitles; }
     public String getAudioname(){return audioname;}
-    public Drawable getImage(Context context) {
-        try {
-            InputStream is = context.getAssets().open("images/" + imagedirectory);
-            Drawable d = Drawable.createFromStream(is, null);
-            is.close();
-            return d;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null; // Return null if file not found
-        }
+    public String getImage() {
+         return imagedirectory;
     }
 }
