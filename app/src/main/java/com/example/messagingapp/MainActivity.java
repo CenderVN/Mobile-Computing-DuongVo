@@ -7,9 +7,8 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-
 import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.IOException;
 
@@ -31,21 +30,27 @@ public class MainActivity extends AppCompatActivity {
         title.setText("Meme Feed - " + user.getUsername());
         profileIcon.setImageURI(null); 
         profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
-        
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
+        
+        FloatingActionButton btnCreate = findViewById(R.id.btnCreateMeme);
+        btnCreate.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, MemeCreatorActivity.class);
+            startActivity(intent);
+        });
+
         ImageView profilebtn = findViewById(R.id.btnProfile);
         profilebtn.setOnClickListener(v -> {
-                            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
-                            startActivity(intent);
-                        });
+            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
+            startActivity(intent);
+        });
         LinearLayout container = findViewById(R.id.menuContainer);
         try {
             String[] files = getAssets().list("jsons");
-
             if (files != null) {
                 for (String filename : files) {
                     if (filename.endsWith(".json")) {

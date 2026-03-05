@@ -62,7 +62,7 @@ public class Meme {
             return d;
         } catch (Exception e) {
             e.printStackTrace();
-            return null; // Return null if file not found
+            return null;
         }
     }
 }
