@@ -1,83 +1,127 @@
 import requests
 import random
-from flask import Flask, jsonify
+import base64
+import os
+import time
+import json
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# This acts as our 'Message Queue'
-# None = No message waiting
-# Data = Message ready to be delivered
-pending_meme = None
+# Folder setup
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# Configuration
+# List to act as a proper mailbox
+message_db = []
+
 CAT_API_URL = "https://api.thecatapi.com/v1/images/search?limit=1"
-# Add your own custom words here
 WORDS = ["OIIA", "CHEX", "OULU", "HUNGRY", "SUCCESS", "ERROR", "ANDROID", "MEOWL", "FINLAND", "SPINNING"]
 
-# --- ROUTE 1: THE CONTROL PANEL ---
-# Visit http://localhost:5000/send-meme in your browser to "send" a message to your phone
-@app.route('/send-meme', methods=['GET'])
-def trigger_meme():
-    global pending_meme
+def log_divider():
+    print("\n" + "="*60)
+
+# --- ROUTE: APP SENDING MESSAGE ---
+@app.route('/api/send', methods=['POST'])
+def receive_from_app():
+    log_divider()
+    print(">>> [INCOMING POST] Message received from App")
+    
     try:
-        # 1. Fetch a dynamic image/gif link from The Cat API
-        response = requests.get(CAT_API_URL)
-        response.raise_for_status()
-        cat_url = response.json()[0]['url']
+        data = request.json
+        sender = data.get("sender", "Unknown")
+        receiver = data.get("receiver", "Unknown")
+        meme_data = data.get("meme", {})
+        
+        print(f"FROM: {sender} | TO: {receiver}")
+        
+        image_content = meme_data.get("imagedirectory", "")
 
-        # 2. Generate random meme text
-        top = random.choice(WORDS)
-        bottom = random.choice(WORDS)
+        # Handle Base64 decoding if it's a local image
+        if image_content and not image_content.startswith("http"):
+            print(f"DEBUG: Found Base64 image data ({len(image_content)} chars). Decoding...")
+            img_bytes = base64.b64decode(image_content)
+            
+            filename = f"meme_{int(time.time())}.jpg"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            
+            with open(filepath, "wb") as f:
+                f.write(img_bytes)
 
-        # 3. Load the "Message Queue" with the template your Java app expects
-        pending_meme = {
-            "toptext": top,
-            "bottomtext": bottom,
-            "imagedirectory": cat_url, # URL link for Glide to load
-            "audioname": "oiia",       # Matches your local raw/oiia.mp3
-            "subtitles": [
-                f"INCOMING MESSAGE: {top}!",
-                "oia oia iiaioia",
-                "oia oia oe",
-                f"End of transmission: {bottom}"
-            ]
-        }
-        print(f"DEBUG: New meme loaded into queue: {top} - {bottom}")
-        return f"""
-        <html>
-            <body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-                <h1 style="color: green;">Meme Loaded Successfully!</h1>
-                <p><b>Top:</b> {top} | <b>Bottom:</b> {bottom}</p>
-                <img src="{cat_url}" style="max-width: 300px; border-radius: 10px; margin: 10px 0;">
-                <p>Your Android app will receive this on its next background check.</p>
-                <p><i>Note: After the app reads this once, it will be deleted from the server.</i></p>
-            </body>
-        </html>
-        """
+            public_url = f"{request.host_url}static/uploads/{filename}"
+            data["meme"]["imagedirectory"] = public_url
+            print(f"DEBUG: Image saved to disk as: {filename}")
+            print(f"DEBUG: Data updated with public URL: {public_url}")
+        else:
+            print(f"DEBUG: Using standard image URL: {image_content[:50]}...")
+
+        # Add to the list (The Mailbox)
+        message_db.append(data)
+        print(f"STATUS: Message added to queue. Total pending messages: {len(message_db)}")
+        log_divider()
+        
+        return jsonify({"status": "success"}), 200
+
     except Exception as e:
-        return f"<h1 style='color: red;'>Error fetching from API</h1><p>{str(e)}</p>", 500
+        print(f"!!! ERROR: {str(e)}")
+        log_divider()
+        return jsonify({"status": "error", "message": str(e)}), 500
 
-# --- ROUTE 2: THE APP ENDPOINT ---
-# Your Android WorkManager will ping http://[YOUR_IP]:5000/get-meme
+# --- ROUTE: APP FETCHING MESSAGES ---
 @app.route('/get-meme', methods=['GET'])
 def get_meme():
-    global pending_meme
+    log_divider()
+    target_user = request.args.get('user', 'Guest')
+    print(f"<<< [FETCH REQUEST] User '{target_user}' is checking their mailbox...")
+
+    # Filter messages for this user or "Everyone"
+    my_messages = [m for m in message_db if m.get('receiver') == target_user or m.get('receiver') == 'Everyone']
     
-    if pending_meme is not None:
-        # FIRST ACCESS: Deliver the payload and immediately clear the queue
-        payload = pending_meme
-        pending_meme = None 
-        print("DEBUG: Meme delivered to device. Queue is now empty.")
-        return jsonify(payload), 200
+    if my_messages:
+        print(f"MATCH FOUND: Delivering {len(my_messages)} messages to {target_user}")
+        for msg in my_messages:
+            print(f" - Message from: {msg.get('sender')}")
+            message_db.remove(msg) # Clear from server after delivery
+        
+        log_divider()
+        return jsonify(my_messages), 200
     else:
-        # SUBSEQUENT ACCESS: Return an error until a new meme is loaded
-        # This simulates a "one-time" message delivery system
-        print("DEBUG: Access Denied. No meme waiting or already consumed.")
-        return jsonify({
-            "error": "Access Denied", 
-            "message": "No new memes. Use /send-meme to load one."
-        }), 403
+        print(f"EMPTY: No new messages for {target_user}")
+        log_divider()
+        return jsonify({"error": "No messages"}), 403
+
+# --- ROUTE: BROWSER DEBUG SENDER ---
+@app.route('/send-meme', methods=['GET'])
+def trigger_meme():
+    log_divider()
+    print("--- [WEB TRIGGER] Manual cat meme generated via browser ---")
+    try:
+        response = requests.get(CAT_API_URL)
+        cat_url = response.json()[0]['url']
+        top = random.choice(WORDS)
+
+        package = {
+            "sender": "System_Cat",
+            "receiver": "Everyone",
+            "meme": {
+                "toptext": top,
+                "bottomtext": "BROWSER TRIGGER",
+                "imagedirectory": cat_url, 
+                "audioname": "oiia",       
+                "subtitles": ["Meow!", "You triggered a debug message."]
+            }
+        }
+        message_db.append(package)
+        print(f"DEBUG: System message queued for Everyone. Image: {cat_url}")
+        log_divider()
+        return f"<h1>Debug Meme Queued!</h1><p>Target: Everyone</p><img src='{cat_url}' width='300'>"
+    except Exception as e:
+        print(f"!!! ERROR: {str(e)}")
+        return str(e), 500
 
 if __name__ == '__main__':
-    # '0.0.0.0' makes the server accessible to your phone on the same Wi-Fi
+    print("\n" + "*"*60)
+    print("CATCONNECT SERVER STARTING...")
+    print(f"Upload directory: {os.path.abspath(UPLOAD_FOLDER)}")
+    print("*"*60 + "\n")
     app.run(host='0.0.0.0', port=5000, debug=True)

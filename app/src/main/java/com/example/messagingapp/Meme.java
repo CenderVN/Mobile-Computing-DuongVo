@@ -18,6 +18,8 @@ public class Meme {
     private List<String> subtitles = new ArrayList<>();
     private String audioname = "";
 
+    public Meme() {}
+    
     public Meme(String input, Context context) {
         String jsonString;
     

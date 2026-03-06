@@ -1,122 +1,121 @@
 package com.example.messagingapp;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.imageview.ShapeableImageView;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
-import androidx.appcompat.app.AppCompatActivity;
-import android.os.Build;
-import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
+    private String currentUsername;
+
     @Override
     protected void onResume() {
         super.onResume();
         updateProfileUI();
+        loadContactList();
     }
-    private void addEasterEgg(LinearLayout container) {
-        Button eggBtn = new Button(this);
-        eggBtn.setText("?? SURPRISE ME ??");
-        eggBtn.setBackgroundColor(android.graphics.Color.parseColor("#FFD700"));
-        eggBtn.setTextColor(android.graphics.Color.BLACK);
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT);
-        params.setMargins(0, 0, 0, 40);
-        eggBtn.setLayoutParams(params);
 
-        eggBtn.setOnClickListener(v -> {
-            new Thread(() -> {
-                try {
-                    java.net.URL url = new java.net.URL("https://api.thecatapi.com/v1/images/search");
-                    java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                    java.util.Scanner s = new java.util.Scanner(conn.getInputStream()).useDelimiter("\\A");
-                    String response = s.hasNext() ? s.next() : "";
-                
-                    org.json.JSONArray array = new org.json.JSONArray(response);
-                    String catUrl = array.getJSONObject(0).getString("url");
-                    org.json.JSONObject mockJson = new org.json.JSONObject();
-                    mockJson.put("toptext", "EASTER EGG");
-                    mockJson.put("bottomtext", "FOUND!");
-                    mockJson.put("imagedirectory", catUrl); // Passing URL as the directory
-
-                    runOnUiThread(() -> {
-                        Intent intent = new Intent(MainActivity.this, MemeActivity.class);
-                        intent.putExtra("RAW_JSON", mockJson.toString());
-                        startActivity(intent);
-                    });
-                } catch (Exception e) {
-                    runOnUiThread(() -> Toast.makeText(this, "Cat escaped!", Toast.LENGTH_SHORT).show());
-                }
-            }).start();
-        });
-        container.addView(eggBtn, 0);
-    }
     private void updateProfileUI() {
         AppDatabase db = AppDatabase.getDb(this);
-        User user = db.UserDao().getUser();
-        if (user == null) {
-            user = new User(MainActivity.this); 
-        }
+        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        currentUsername = prefs.getString("last_logged_in_user", "Guest");
+
+        User user = db.UserDao().getUserByName(currentUsername);
+        if (user == null) user = new User(this);
+
         TextView title = findViewById(R.id.txtFeedTitle);
         ImageView profileIcon = findViewById(R.id.btnProfile);
         title.setText("Meme Feed - " + user.getUsername());
-        profileIcon.setImageURI(null); 
-        profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
         
+        if (user.getProfilepic() != null) {
+            profileIcon.setImageURI(null);
+            profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
+        }
     }
+
+    private void loadContactList() {
+        LinearLayout container = findViewById(R.id.menuContainer);
+        container.removeAllViews();
+        AppDatabase db = AppDatabase.getDb(this);
+
+        new Thread(() -> {
+            List<Contact> contacts = db.ContactDao().getContactsByOwner(currentUsername);
+            runOnUiThread(() -> {
+                for (Contact contact : contacts) {
+                    addContactView(container, contact);
+                }
+            });
+        }).start();
+    }
+
+    private void addContactView(LinearLayout container, Contact contact) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(20, 20, 20, 20);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setBackgroundResource(android.R.drawable.list_selector_background);
+
+        ShapeableImageView iv = new ShapeableImageView(this);
+        iv.setLayoutParams(new LinearLayout.LayoutParams(120, 120));
+        iv.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        iv.setShapeAppearanceModel(iv.getShapeAppearanceModel().toBuilder()
+                .setAllCornerSizes(60f).build());
+        if (contact.getProfilePicUrl() != null) {
+            iv.setImageURI(Uri.parse(contact.getProfilePicUrl()));
+        }
+
+        TextView tv = new TextView(this);
+        tv.setText(contact.getName());
+        tv.setTextColor(0xFFFFFFFF);
+        tv.setTextSize(20);
+        tv.setPadding(30, 0, 0, 0);
+
+        row.addView(iv);
+        row.addView(tv);
+        row.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+            intent.putExtra("CONTACT_NAME", contact.getName());
+            startActivity(intent);
+        });
+
+        container.addView(row);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
         }
-        PeriodicWorkRequest memeCheckRequest =
-        new PeriodicWorkRequest.Builder(MemeWorker.class, 15, TimeUnit.MINUTES)
-                    .setInitialDelay(10, TimeUnit.SECONDS)
-                    .build();
-                
+        
+        PeriodicWorkRequest memeCheckRequest = new PeriodicWorkRequest.Builder(MemeWorker.class, 15, TimeUnit.MINUTES)
+                .setInitialDelay(10, TimeUnit.SECONDS).build();
         WorkManager.getInstance(this).enqueue(memeCheckRequest);
+        
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
-        ImageView profilebtn = findViewById(R.id.btnProfile);
-        profilebtn.setOnClickListener(v -> {
-                            Intent intent = new Intent(MainActivity.this, ProfileActivity.class);
-                            startActivity(intent);
-                        });
-        LinearLayout container = findViewById(R.id.menuContainer);
-        addEasterEgg(container);
-        try {
-            String[] files = getAssets().list("jsons");
+        
+        findViewById(R.id.btnCreateMeme).setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, MemeCreatorActivity.class));
+        });
 
-            if (files != null) {
-                for (String filename : files) {
-                    if (filename.endsWith(".json")) {
-                        Button btn = new Button(this);
-                        String displayName = filename.replace(".json", "").toUpperCase();
-                        btn.setText(displayName);
-                        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT);
-                        params.setMargins(0, 0, 0, 20);
-                        btn.setLayoutParams(params);
-                        btn.setOnClickListener(v -> {
-                            Intent intent = new Intent(MainActivity.this, MemeActivity.class);
-                            intent.putExtra("JSON_FILE", filename);
-                            startActivity(intent);
-                        });
-                        container.addView(btn);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        findViewById(R.id.btnProfile).setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        });
     }
 }

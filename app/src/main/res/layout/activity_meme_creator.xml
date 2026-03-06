@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#121212"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <FrameLayout
+            android:id="@+id/memeFrame"
+            android:layout_width="match_parent"
+            android:layout_height="300dp"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/imgMemePreview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                app:srcCompat="@drawable/ic_launcher_foreground" />
+
+            <EditText
+                android:id="@+id/editTopText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:hint="TOP TEXT"
+                android:padding="10dp"
+                android:textColor="#FFFFFF"
+                android:textSize="40sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/editBottomText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:background="@android:color/transparent"
+                android:gravity="center"
+                android:hint="BOTTOM TEXT"
+                android:padding="10dp"
+                android:textColor="#FFFFFF"
+                android:textSize="40sp"
+                android:textStyle="bold" />
+        </FrameLayout>
+
+        <!-- IMAGE SELECTION -->
+        <Button 
+            android:id="@+id/btnImageSource" 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:layout_marginTop="16dp"
+            android:text="Select Image Source" 
+            app:layout_constraintTop_toBottomOf="@+id/memeFrame" />
+
+        <Button android:id="@+id/btnPickImage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Pick from Gallery" android:visibility="gone" app:layout_constraintTop_toBottomOf="@id/btnImageSource" app:layout_constraintStart_toStartOf="parent" />
+        <EditText android:id="@+id/editImageUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Enter Image URL" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnImageSource" />
+
+        <!-- AUDIO SELECTION -->
+        <Button 
+            android:id="@+id/btnAudioSource" 
+            android:layout_width="match_parent" 
+            android:layout_height="wrap_content" 
+            android:layout_marginTop="8dp"
+            android:text="Select Audio Source" 
+            app:layout_constraintTop_toBottomOf="@+id/btnPickImage" />
+
+        <EditText android:id="@+id/editAudioName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Local Filename" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnAudioSource" />
+        <EditText android:id="@+id/editAudioUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Remote Audio URL" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnAudioSource" />
+
+        <!-- Subtitles -->
+        <EditText
+            android:id="@+id/editSubtitles"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#1E1E1E"
+            android:gravity="top"
+            android:hint="Enter lyrics (one per line)"
+            android:inputType="textMultiLine"
+            android:padding="10dp"
+            android:textColor="#BBBBBB"
+            app:layout_constraintTop_toBottomOf="@+id/editAudioName" />
+
+        <LinearLayout
+            android:id="@+id/buttonContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal"
+            android:weightSum="2"
+            app:layout_constraintTop_toBottomOf="@+id/editSubtitles">
+
+            <Button
+                android:id="@+id/btnSave"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="#555555"
+                android:text="Save"
+                android:textColor="#FFFFFF" />
+
+            <Button
+                android:id="@+id/btnSendMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:backgroundTint="#2E7D32"
+                android:text="Send"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

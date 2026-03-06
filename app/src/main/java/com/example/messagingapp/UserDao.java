@@ -7,8 +7,14 @@ import androidx.room.Query;
 
 @Dao
 public interface UserDao {
-    @Query("SELECT * FROM User WHERE id = 1")
-    User getUser();
+    
+    @Query("SELECT * FROM users LIMIT 1") 
+    User getAnyUser();
+
+    
+    @Query("SELECT * FROM users WHERE username = :name LIMIT 1")
+    User getUserByName(String name);
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void save(User user);
 }
