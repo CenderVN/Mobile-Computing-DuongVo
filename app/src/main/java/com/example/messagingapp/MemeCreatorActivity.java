@@ -15,38 +15,87 @@ import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Scanner;
+import android.content.Intent;
 
 public class MemeCreatorActivity extends AppCompatActivity {
 
     private Uri selectedImageUri = null;
-    private Uri selectedAudioUri = null; // New
+    private File cameraFile = null;
     private String currentImageSource = "FILE";
-    private String currentAudioSource = "FILE";
+    private String permanentLocalPath = null;
 
     private final ActivityResultLauncher<PickVisualMediaRequest> pickMedia =
             registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
                 if (uri != null) {
-                    selectedImageUri = uri;
-                    ((ImageView)findViewById(R.id.imgMemePreview)).setImageURI(uri);
+                    try {
+                        permanentLocalPath = saveToInternalStorage(uri);
+                        selectedImageUri = uri;
+                        ((ImageView)findViewById(R.id.imgMemePreview)).setImageURI(Uri.fromFile(new File(permanentLocalPath)));
+                    } catch (IOException e) {
+                        Toast.makeText(this, "Error saving", Toast.LENGTH_SHORT).show();
+                    }
                 }
             });
 
-    // NEW: Audio File Explorer Launcher
-    private final ActivityResultLauncher<String> pickAudio =
-            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-                if (uri != null) {
-                    selectedAudioUri = uri;
-                    Button btnAudio = findViewById(R.id.btnAudioSource);
-                    btnAudio.setText("Audio Selected");
-                    Toast.makeText(this, "Audio file linked!", Toast.LENGTH_SHORT).show();
-                }
-            });
+    private final ActivityResultLauncher<Intent> customCameraLauncher =
+        registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                permanentLocalPath = result.getData().getStringExtra("path");
+                selectedImageUri = Uri.fromFile(new File(permanentLocalPath));
+                ((ImageView)findViewById(R.id.imgMemePreview)).setImageURI(selectedImageUri);
+            }
+        });
+
+    private String saveToInternalStorage(Uri uri) throws IOException {
+        InputStream is = getContentResolver().openInputStream(uri);
+        String filename = "sent_" + System.currentTimeMillis() + ".jpg";
+        File file = new File(getFilesDir(), filename);
+        OutputStream os = new FileOutputStream(file);
+        byte[] buffer = new byte[1024];
+        int len;
+        while ((len = is.read(buffer)) > 0) os.write(buffer, 0, len);
+        os.close();
+        is.close();
+        return file.getAbsolutePath();
+    }
+
+    private Uri getTmpFileUri() {
+        cameraFile = new File(getFilesDir(), "cam_" + System.currentTimeMillis() + ".jpg");
+        return FileProvider.getUriForFile(this, getPackageName() + ".provider", cameraFile);
+    }
+
+    private void fetchRandomCat(EditText urlInput, ImageView preview) {
+        new Thread(() -> {
+            try {
+                URL url = new URL("https://api.thecatapi.com/v1/images/search");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                Scanner s = new Scanner(conn.getInputStream()).useDelimiter("\\A");
+                String response = s.hasNext() ? s.next() : "";
+                JSONArray array = new JSONArray(response);
+                String catUrl = array.getJSONObject(0).getString("url");
+                
+                runOnUiThread(() -> {
+                    urlInput.setText(catUrl);
+                    com.bumptech.glide.Glide.with(this).load(catUrl).into(preview);
+                    Toast.makeText(this, "Cat found!", Toast.LENGTH_SHORT).show();
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(this, "API Error", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
 
     private String convertUriToBase64(Uri uri) {
         try {
@@ -67,25 +116,33 @@ public class MemeCreatorActivity extends AppCompatActivity {
         Button btnImageSource = findViewById(R.id.btnImageSource);
         Button btnPickImage = findViewById(R.id.btnPickImage);
         EditText editImageUrl = findViewById(R.id.editImageUrl);
-        Button btnAudioSource = findViewById(R.id.btnAudioSource);
-        EditText editAudioUrl = findViewById(R.id.editAudioUrl);
         EditText editTop = findViewById(R.id.editTopText);
         EditText editBottom = findViewById(R.id.editBottomText);
-        EditText editSubtitles = findViewById(R.id.editSubtitles);
+        ImageView imgPreview = findViewById(R.id.imgMemePreview);
 
         btnImageSource.setOnClickListener(v -> {
             PopupMenu popup = new PopupMenu(this, v);
-            popup.getMenu().add("Local File");
-            popup.getMenu().add("API URL");
+            popup.getMenu().add("Gallery");
+            popup.getMenu().add("Camera");
+            popup.getMenu().add("Get Random Cat");
             popup.setOnMenuItemClickListener(item -> {
-                if (item.getTitle().equals("Local File")) {
+                String title = item.getTitle().toString();
+                if (title.equals("Gallery")) {
                     currentImageSource = "FILE";
                     btnPickImage.setVisibility(View.VISIBLE);
                     editImageUrl.setVisibility(View.GONE);
+                } else if (title.equals("Camera")) {
+                    requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 100);
+                    currentImageSource = "FILE";
+                    btnPickImage.setVisibility(View.GONE);
+                    editImageUrl.setVisibility(View.GONE);
+                    selectedImageUri = getTmpFileUri();
+                    customCameraLauncher.launch(new Intent(this, CameraActivity.class));
                 } else {
                     currentImageSource = "API";
                     btnPickImage.setVisibility(View.GONE);
                     editImageUrl.setVisibility(View.VISIBLE);
+                    fetchRandomCat(editImageUrl, imgPreview);
                 }
                 return true;
             });
@@ -95,83 +152,59 @@ public class MemeCreatorActivity extends AppCompatActivity {
         btnPickImage.setOnClickListener(v -> pickMedia.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build()));
 
-        btnAudioSource.setOnClickListener(v -> {
-            PopupMenu popup = new PopupMenu(this, v);
-            popup.getMenu().add("Local File (Explorer)");
-            popup.getMenu().add("API URL");
-            popup.setOnMenuItemClickListener(item -> {
-                if (item.getTitle().equals("Local File (Explorer)")) {
-                    currentAudioSource = "FILE";
-                    editAudioUrl.setVisibility(View.GONE);
-                    pickAudio.launch("audio/*"); // Opens file explorer
-                } else {
-                    currentAudioSource = "API";
-                    editAudioUrl.setVisibility(View.VISIBLE);
-                }
-                return true;
-            });
-            popup.show();
-        });
-
-        findViewById(R.id.btnSave).setOnClickListener(v -> processAction(null, editTop, editBottom, editSubtitles, editImageUrl, editAudioUrl));
+        findViewById(R.id.btnSave).setOnClickListener(v -> processAction(null, editTop, editBottom, editImageUrl));
+        
+        String targetReceiver = getIntent().getStringExtra("TARGET_RECEIVER");
         findViewById(R.id.btnSendMessage).setOnClickListener(v -> {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Receiver Name");
-            final EditText input = new EditText(this);
-            builder.setView(input);
-            builder.setPositiveButton("Send", (dialog, which) -> processAction(input.getText().toString(), editTop, editBottom, editSubtitles, editImageUrl, editAudioUrl));
-            builder.show();
+            if (targetReceiver != null && !targetReceiver.isEmpty()) {
+                processAction(targetReceiver, editTop, editBottom, editImageUrl);
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Receiver Name");
+                final EditText input = new EditText(this);
+                builder.setView(input);
+                builder.setPositiveButton("Send", (dialog, which) -> 
+                    processAction(input.getText().toString(), editTop, editBottom, editImageUrl));
+                builder.show();
+            }
         });
     }
 
-    private void processAction(String receiver, EditText top, EditText bottom, EditText subs, EditText imgUrl, EditText audU) {
+    private void processAction(String receiver, EditText top, EditText bottom, EditText imgUrl) {
         new Thread(() -> {
             try {
                 SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
                 String sender = prefs.getString("last_logged_in_user", "Guest");
-
-                JSONObject memeJson = new JSONObject();
-                memeJson.put("toptext", top.getText().toString());
-                memeJson.put("bottomtext", bottom.getText().toString());
-                memeJson.put("subtitles", subs.getText().toString());
+                JSONObject localMemeJson = new JSONObject();
+                localMemeJson.put("toptext", top.getText().toString());
+                localMemeJson.put("bottomtext", bottom.getText().toString());
                 
-                // 1. Get the path for LOCAL DB (Small string)
-                String localImgPath = currentImageSource.equals("FILE") && selectedImageUri != null ? 
-                        selectedImageUri.toString() : imgUrl.getText().toString();
-                memeJson.put("imagedirectory", localImgPath);
+                String localImgPath = currentImageSource.equals("FILE") && permanentLocalPath != null ? 
+                        permanentLocalPath : imgUrl.getText().toString();
+                localMemeJson.put("imagedirectory", localImgPath);
 
-                String audioData = currentAudioSource.equals("FILE") && selectedAudioUri != null ? 
-                        selectedAudioUri.toString() : audU.getText().toString();
-                memeJson.put("audioname", audioData);
-
-                // 2. Save to Local Database (Uses URI, so it's safe and won't crash)
-                Meme memeObj = new Meme(memeJson.toString(), this);
+                Meme memeObj = new Meme(localMemeJson.toString(), this);
                 Message localMsg = new Message(sender, receiver != null ? receiver : "Draft", memeObj);
                 AppDatabase.getDb(this).MessageDao().insertMessage(localMsg);
-
+                
                 if (receiver != null) {
-                    // 3. Prepare for SERVER (Convert to Base64 ONLY for the network call)
+                    Contact c = new Contact(receiver, sender, null);
+                    AppDatabase.getDb(this).ContactDao().addContact(c);
+                    JSONObject networkMemeJson = new JSONObject(localMemeJson.toString());
                     if (currentImageSource.equals("FILE") && selectedImageUri != null) {
-                        memeJson.put("imagedirectory", convertUriToBase64(selectedImageUri));
+                        networkMemeJson.put("imagedirectory", convertUriToBase64(selectedImageUri));
                     }
-
                     JSONObject packageJson = new JSONObject();
                     packageJson.put("sender", sender);
                     packageJson.put("receiver", receiver);
-                    packageJson.put("meme", memeJson);
-
+                    packageJson.put("meme", networkMemeJson);
                     URL url = new URL("http://192.168.0.150:5000/api/send");
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json; utf-8");
                     conn.setDoOutput(true);
-                    try (OutputStream os = conn.getOutputStream()) { 
-                        os.write(packageJson.toString().getBytes("utf-8")); 
-                    }
-                    
-                    if (conn.getResponseCode() == 200) {
-                        runOnUiThread(() -> Toast.makeText(this, "Sent!", Toast.LENGTH_SHORT).show());
-                    }
+                    try (OutputStream os = conn.getOutputStream()) { os.write(packageJson.toString().getBytes("utf-8")); }
+                    if (conn.getResponseCode() == 200) runOnUiThread(() -> Toast.makeText(this, "Sent!", Toast.LENGTH_SHORT).show());
                 }
                 finish();
             } catch (Exception e) { e.printStackTrace(); }

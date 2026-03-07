@@ -1,5 +1,6 @@
 package com.example.messagingapp;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
@@ -13,8 +14,8 @@ public interface MessageDao {
            "(senderId = :me AND receiverId = :them) OR " +
            "(senderId = :them AND receiverId = :me) " +
            "ORDER BY timestamp ASC")
-    List<Message> getConversation(String me, String them);
+    LiveData<List<Message>> getConversation(String me, String them);
 
     @Query("SELECT * FROM messages ORDER BY timestamp DESC")
-    List<Message> getAllMessages();
+    LiveData<List<Message>> getAllMessages();
 }

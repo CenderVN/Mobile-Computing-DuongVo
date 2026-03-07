@@ -8,7 +8,6 @@
     android:background="#121212"
     android:fitsSystemWindows="true">
 
-    <!-- HEADER: Messenger Style -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/chatToolbar"
         android:layout_width="match_parent"
@@ -30,7 +29,6 @@
                 android:src="@android:drawable/ic_menu_revert"
                 app:tint="#FFFFFF" />
 
-            <!-- Profile Picture -->
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/contactPfp"
                 android:layout_width="40dp"
@@ -40,7 +38,6 @@
                 android:src="@drawable/profile_placeholder"
                 app:shapeAppearanceOverlay="@style/CircleImage" />
 
-            <!-- Contact Name -->
             <TextView
                 android:id="@+id/contactName"
                 android:layout_width="wrap_content"
@@ -53,7 +50,6 @@
         </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <!-- CONVERSATION LIST (The Messages) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvMessages"
         android:layout_width="match_parent"
@@ -61,7 +57,6 @@
         app:layout_constraintTop_toBottomOf="@id/chatToolbar"
         app:layout_constraintBottom_toTopOf="@id/inputLayout" />
 
-    <!-- BOTTOM INPUT AREA -->
     <LinearLayout
         android:id="@+id/inputLayout"
         android:layout_width="match_parent"
@@ -71,21 +66,14 @@
         android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <Button
-            android:id="@+id/btnPremade"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="Premade" />
 
         <Button
             android:id="@+id/btnCreate"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="Create New" />
+            android:backgroundTint="#2E7D32"
+            android:text="Send Meme"
+            android:textColor="#FFFFFF" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

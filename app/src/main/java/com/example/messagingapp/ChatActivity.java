@@ -3,7 +3,6 @@ package com.example.messagingapp;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
@@ -51,37 +50,23 @@ public class ChatActivity extends AppCompatActivity {
         adapter = new MessageAdapter(messageList, currentUsername);
         rvMessages.setAdapter(adapter);
 
-        loadMessages();
-
-        findViewById(R.id.btnCreate).setOnClickListener(v -> {
-            Intent i = new Intent(this, MemeCreatorActivity.class);
-            startActivity(i);
-        });
-        
-        findViewById(R.id.btnPremade).setOnClickListener(v -> finish()); 
-    }
-
-    private void loadMessages() {
-        new Thread(() -> {
-            AppDatabase db = AppDatabase.getDb(this);
-            List<Message> msgs = db.MessageDao().getConversation(currentUsername, contactName); 
-            
-            runOnUiThread(() -> {
+        AppDatabase.getDb(this).MessageDao().getConversation(currentUsername, contactName).observe(this, msgs -> {
+            if (msgs != null) {
                 messageList.clear();
                 messageList.addAll(msgs);
                 adapter.notifyDataSetChanged();
                 
-                // Auto-scroll to the newest message at the bottom
+    
                 if (!messageList.isEmpty()) {
                     rvMessages.scrollToPosition(messageList.size() - 1);
                 }
-            });
-        }).start();
-    }
+            }
+        });
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadMessages(); 
+        findViewById(R.id.btnCreate).setOnClickListener(v -> {
+            Intent i = new Intent(this, MemeCreatorActivity.class);
+            i.putExtra("TARGET_RECEIVER", contactName);
+            startActivity(i);
+        });
     }
 }

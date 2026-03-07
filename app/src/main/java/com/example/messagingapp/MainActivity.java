@@ -6,18 +6,17 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.imageview.ShapeableImageView;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import androidx.work.OneTimeWorkRequest;
+import androidx.core.splashscreen.SplashScreen;
+import androidx.work.ExistingWorkPolicy;
 
 public class MainActivity extends AppCompatActivity {
     private String currentUsername;
@@ -26,7 +25,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         updateProfileUI();
-        loadContactList();
     }
 
     private void updateProfileUI() {
@@ -45,21 +43,6 @@ public class MainActivity extends AppCompatActivity {
             profileIcon.setImageURI(null);
             profileIcon.setImageURI(Uri.parse(user.getProfilepic()));
         }
-    }
-
-    private void loadContactList() {
-        LinearLayout container = findViewById(R.id.menuContainer);
-        container.removeAllViews();
-        AppDatabase db = AppDatabase.getDb(this);
-
-        new Thread(() -> {
-            List<Contact> contacts = db.ContactDao().getContactsByOwner(currentUsername);
-            runOnUiThread(() -> {
-                for (Contact contact : contacts) {
-                    addContactView(container, contact);
-                }
-            });
-        }).start();
     }
 
     private void addContactView(LinearLayout container, Contact contact) {
@@ -103,12 +86,27 @@ public class MainActivity extends AppCompatActivity {
             requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
         }
         
-        PeriodicWorkRequest memeCheckRequest = new PeriodicWorkRequest.Builder(MemeWorker.class, 15, TimeUnit.MINUTES)
-                .setInitialDelay(10, TimeUnit.SECONDS).build();
-        WorkManager.getInstance(this).enqueue(memeCheckRequest);
+        OneTimeWorkRequest initialCheck = new OneTimeWorkRequest.Builder(MemeWorker.class).build();
+        WorkManager.getInstance(this).enqueueUniqueWork("MemeSync", ExistingWorkPolicy.KEEP, initialCheck);
         
+        SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_menu);
+
+        AppDatabase db = AppDatabase.getDb(this);
+        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        currentUsername = prefs.getString("last_logged_in_user", "Guest");
+
+        LinearLayout container = findViewById(R.id.menuContainer);
+        
+        db.ContactDao().getContactsByOwner(currentUsername).observe(this, contacts -> {
+            container.removeAllViews();
+            if (contacts != null) {
+                for (Contact contact : contacts) {
+                    addContactView(container, contact);
+                }
+            }
+        });
         
         findViewById(R.id.btnCreateMeme).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, MemeCreatorActivity.class));

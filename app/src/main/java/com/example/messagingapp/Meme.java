@@ -1,28 +1,19 @@
 package com.example.messagingapp;
 
 import android.content.Context;
-import android.graphics.drawable.Drawable;
-
-import org.json.JSONArray;
-
 import org.json.JSONObject;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Meme {
     private String toptext = "";
     private String bottomtext = "";
     private String imagedirectory = "";
-    private List<String> subtitles = new ArrayList<>();
-    private String audioname = "";
 
     public Meme() {}
     
     public Meme(String input, Context context) {
         String jsonString;
-    
         if (input != null && input.trim().startsWith("{")) {
             jsonString = input;
         } else {
@@ -34,19 +25,12 @@ public class Meme {
             this.toptext = jsonObject.optString("toptext", "");
             this.bottomtext = jsonObject.optString("bottomtext", "");
             this.imagedirectory = jsonObject.optString("imagedirectory", "");
-            this.audioname = jsonObject.optString("audioname", "");
-        
-            JSONArray jsonArray = jsonObject.optJSONArray("subtitles");
-            if (jsonArray != null) {
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    this.subtitles.add(jsonArray.getString(i));
-                }
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-    public String filereader(String jsonFilePath,Context context){
+
+    public String filereader(String jsonFilePath, Context context){
         try {
             InputStream is = context.getAssets().open("jsons/"+jsonFilePath);
             int size = is.available();
@@ -55,16 +39,11 @@ public class Meme {
             is.close();
             return new String(buffer, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
+
     public String getToptext() { return toptext; }
     public String getBottomtext() { return bottomtext; }
-    public String getImagedirectory() { return imagedirectory; }
-    public List<String> getSubtitles() { return subtitles; }
-    public String getAudioname(){return audioname;}
-    public String getImage() {
-         return imagedirectory;
-    }
+    public String getImage() { return imagedirectory; }
 }

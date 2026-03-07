@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
+        <!-- FRAME LAYOUT STACKS TEXT ON PHOTO -->
         <FrameLayout
             android:id="@+id/memeFrame"
             android:layout_width="match_parent"
@@ -52,52 +53,42 @@
                 android:textStyle="bold" />
         </FrameLayout>
 
-        <!-- IMAGE SELECTION -->
-        <Button 
-            android:id="@+id/btnImageSource" 
-            android:layout_width="match_parent" 
-            android:layout_height="wrap_content" 
-            android:layout_marginTop="16dp"
-            android:text="Select Image Source" 
-            app:layout_constraintTop_toBottomOf="@+id/memeFrame" />
-
-        <Button android:id="@+id/btnPickImage" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Pick from Gallery" android:visibility="gone" app:layout_constraintTop_toBottomOf="@id/btnImageSource" app:layout_constraintStart_toStartOf="parent" />
-        <EditText android:id="@+id/editImageUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Enter Image URL" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnImageSource" />
-
-        <!-- AUDIO SELECTION -->
-        <Button 
-            android:id="@+id/btnAudioSource" 
-            android:layout_width="match_parent" 
-            android:layout_height="wrap_content" 
-            android:layout_marginTop="8dp"
-            android:text="Select Audio Source" 
-            app:layout_constraintTop_toBottomOf="@+id/btnPickImage" />
-
-        <EditText android:id="@+id/editAudioName" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Local Filename" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnAudioSource" />
-        <EditText android:id="@+id/editAudioUrl" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Remote Audio URL" android:visibility="gone" android:textColor="#FFFFFF" app:layout_constraintTop_toBottomOf="@id/btnAudioSource" />
-
-        <!-- Subtitles -->
-        <EditText
-            android:id="@+id/editSubtitles"
+        <!-- IMAGE SELECTION AREA -->
+        <Button
+            android:id="@+id/btnImageSource"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:background="#1E1E1E"
-            android:gravity="top"
-            android:hint="Enter lyrics (one per line)"
-            android:inputType="textMultiLine"
-            android:padding="10dp"
-            android:textColor="#BBBBBB"
-            app:layout_constraintTop_toBottomOf="@+id/editAudioName" />
+            android:text="Select Image Source"
+            app:layout_constraintTop_toBottomOf="@+id/memeFrame" />
 
+        <Button
+            android:id="@+id/btnPickImage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pick from Gallery"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/btnImageSource"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <EditText
+            android:id="@+id/editImageUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Enter Image URL"
+            android:visibility="gone"
+            android:textColor="#FFFFFF"
+            app:layout_constraintTop_toBottomOf="@id/btnImageSource" />
+
+        <!-- BUTTONS CONTAINER (Now constrained to the Image section) -->
         <LinearLayout
             android:id="@+id/buttonContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
+            android:layout_marginTop="32dp"
             android:orientation="horizontal"
             android:weightSum="2"
-            app:layout_constraintTop_toBottomOf="@+id/editSubtitles">
+            app:layout_constraintTop_toBottomOf="@+id/btnPickImage">
 
             <Button
                 android:id="@+id/btnSave"

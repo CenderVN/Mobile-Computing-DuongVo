@@ -7,6 +7,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
+import androidx.work.WorkManager;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.BufferedReader;
@@ -15,6 +16,8 @@ import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import androidx.work.OneTimeWorkRequest;
+import java.util.concurrent.TimeUnit;
 
 public class MemeWorker extends Worker {
     private static final String SERVER_URL = "http://192.168.0.150:5000/get-meme";
@@ -76,6 +79,10 @@ public class MemeWorker extends Worker {
 
                     NotificationHelper.showMemeNotification(getApplicationContext(), memeDataString);
                 }
+                OneTimeWorkRequest nextCheck = new OneTimeWorkRequest.Builder(MemeWorker.class)
+                        .setInitialDelay(5, TimeUnit.SECONDS)
+                        .build();
+                WorkManager.getInstance(getApplicationContext()).enqueue(nextCheck);
                 return Result.success();
             }
         } catch (Exception e) {
@@ -84,6 +91,10 @@ public class MemeWorker extends Worker {
         } finally {
             if (conn != null) conn.disconnect();
         }
-        return Result.retry();
+        OneTimeWorkRequest nextCheck = new OneTimeWorkRequest.Builder(MemeWorker.class)
+                        .setInitialDelay(5, TimeUnit.SECONDS)
+                        .build();
+        WorkManager.getInstance(getApplicationContext()).enqueue(nextCheck);
+        return Result.success();
     }
 }
